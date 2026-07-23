@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake News Detector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --darker: #020617;
+            --light: #f1f5f9;
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--darker);
+            color: var(--light);
+            min-height: 100vh;
+            padding: 2rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background: linear-gradient(45deg, #0f172a, #1e293b, #334155);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Main container */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Results grid */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Main content card */
+        .content-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .content-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        /* Prediction card */
+        .prediction-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            height: fit-content;
+        }
+
+        .prediction-score {
+            font-size: 4rem;
+            font-weight: 800;
+            margin: 1rem 0;
+            background: linear-gradient(45deg, var(--success), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .prediction-label {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Confidence meter */
+        .confidence-meter {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .meter-bg {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, var(--success) 0%, var(--warning) 50%, var(--danger) 100%);
+            padding: 10px;
+        }
+
+        .meter-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--darker);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .meter-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--light);
+        }
+
+        .meter-text {
+            font-size: 0.9rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .status-reliable {
+            background: linear-gradient(45deg, var(--success), #059669);
+            color: white;
+        }
+
+        .status-suspicious {
+            background: linear-gradient(45deg, var(--warning), #d97706);
+            color: white;
+        }
+
+        .status-unreliable {
+            background: linear-gradient(45deg, var(--danger), #dc2626);
+            color: white;
+        }
+
+        /* Section styling */
+        .section {
+            margin-bottom: 2.5rem;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--light);
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .section-content {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            color: #94a3b8;
+            line-height: 1.7;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .section-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .section-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .section-content::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            border-radius: 3px;
+        }
+
+        /* URL display */
+        .url-display {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            word-break: break-all;
+        }
+
+        .url-display a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .url-display a:hover {
+            text-decoration: underline;
+        }
+
+        /* Action buttons */
+        .actions {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1.25rem 2.5rem;
+            border-radius: 16px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.5px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transition: left 0.6s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 
+                0 10px 25px rgba(99, 102, 241, 0.4),
+                0 4px 12px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, 
+                rgba(99, 102, 241, 0.1), 
+                rgba(168, 85, 247, 0.1)
+            );
+            z-index: -1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 
+                0 20px 40px rgba(99, 102, 241, 0.6),
+                0 8px 20px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 8px 20px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            z-index: -1;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-4px) scale(1.02);
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 
+                0 15px 30px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(-2px) scale(0.98);
+            transition: all 0.1s ease;
+        }
+
+        /* Button icons with enhanced styling */
+        .btn span:first-child {
+            font-size: 1.2rem;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .confidence-meter {
+                width: 150px;
+                height: 150px;
+            }
+
+            .prediction-score {
+                font-size: 3rem;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1> Analysis Results</h1>
+        </div>
+
+        {% if prediction is not none %}
+        <div class="results-grid">
+            <div class="content-card">
+                {% if url and not text_provided %}
+                <div class="section">
+                    <div class="section-title">
+                        <div class="section-icon">🔗</div>
+                        Source URL
+                    </div>
+                    <div class="url-display">
+                        <a href="{{ url }}" target="_blank">{{ url }}</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="section">
+                    <div class="section-title">
+                        <div class="section-icon">📰</div>
+                        Article Title
+                    </div>
+                    <div class="section-content">
+                        <strong>{{ title }}</strong>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">
+                        <div class="section-icon">📄</div>
+                        Content Analysis
+                    </div>
+                    <div class="section-content">
+                        {{ article.replace('\n', '<br>')|safe }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="prediction-card">
+                <div class="confidence-meter">
+                    <div class="meter-bg">
+                        <div class="meter-inner">
+                            <div class="meter-value">{{ prediction }}%</div>
+                            <div class="meter-text">Credible</div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if prediction >= 75 %}
+                    <div class="status-badge status-reliable">
+                        ✅ Highly Reliable
+                    </div>
+                {% elif prediction >= 50 %}
+                    <div class="status-badge status-reliable">
+                        ✅ Reliable
+                    </div>
+                {% elif prediction >= 40 %}
+                    <div class="status-badge status-suspicious">
+                         ⛔ Less Reliable
+                    </div>
+                {% else %}
+                    <div class="status-badge status-unreliable">
+                         ❌ Unreliable
+                    </div>
+                {% endif %}
+
+                <div class="prediction-label">
+                     Confidence Score
+                </div>
+
+                <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5;">
+                    This score represents the likelihood that the article contains authentic, factual information based on our analysis.
+                </p>
+            </div>
+        </div>
+        {% else %}
+        <div class="content-card error-card">
+            <div class="error-icon">⚠️</div>
+            <div class="error-title">Analysis Error</div>
+            <div class="error-message">
+                <strong>{{ title }}</strong><br>
+                {{ article }}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="actions">
+            <a href="/" class="btn btn-secondary">
+                 Home
+            </a>
+            <a href="/search" class="btn btn-primary">
+                 Analyze Another
+            </a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate confidence meter
+            const meterValue = document.querySelector('.meter-value');
+            if (meterValue) {
+                const targetValue = parseInt(meterValue.textContent);
+                let currentValue = 0;
+                const increment = targetValue / 50;
+                
+                const animateValue = () => {
+                    if (currentValue < targetValue) {
+                        currentValue += increment;
+                        meterValue.textContent = Math.round(currentValue) + '%';
+                        requestAnimationFrame(animateValue);
+                    } else {
+                        meterValue.textContent = targetValue + '%';
+                    }
+                };
+                
+                setTimeout(animateValue, 500);
+            }
+
+            // Add hover effects to cards
+            document.querySelectorAll('.content-card, .prediction-card').forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                    this.style.boxShadow = '0 25px 50px rgba(0, 0, 0, 0.2)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = 'none';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

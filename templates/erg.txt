@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Result</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Analysis Result</h1>
+
+        {% if url and not text_provided %}
+            <p><strong>URL:</strong> <a href="{{ url }}" target="_blank">{{ url }}</a></p>
+        {% endif %}
+
+        <p><strong>Title:</strong> {{ title }}</p>
+
+        <h2>Article Content</h2>
+        <p>{{ article.replace('\n', '<br>')|safe }}</p>
+
+        {% if prediction is not none %}
+            <h2>Prediction</h2>
+            <p>This article is <strong>{{ prediction }}%</strong> likely to be real.</p>
+        {% else %}
+            <p><em>Could not generate prediction.</em></p>
+        {% endif %}
+
+        <a href="/" class="btn">Analyze Another</a>
+    </div>
+</body>
+</html>
